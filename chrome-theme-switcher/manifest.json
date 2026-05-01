@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "ToneShift Theme Switcher",
+  "description": "Switch any website between dark, light, cream, warm white, Codex-inspired, and other calm color themes.",
+  "version": "1.0.0",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "ToneShift",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

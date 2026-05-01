@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ToneShift</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>ToneShift</h1>
+          <p id="siteLabel">This website</p>
+        </div>
+        <label class="switch" title="Enable or disable theme on this browser">
+          <input id="enabled" type="checkbox">
+          <span></span>
+        </label>
+      </header>
+
+      <section class="theme-grid" id="themeGrid" aria-label="Themes"></section>
+
+      <section class="controls">
+        <label>
+          <span>Contrast</span>
+          <input id="contrast" type="range" min="80" max="115" step="1">
+        </label>
+        <label>
+          <span>Image tone</span>
+          <input id="imageTone" type="range" min="60" max="110" step="1">
+        </label>
+      </section>
+
+      <button class="reset" id="reset" type="button">Reset</button>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
