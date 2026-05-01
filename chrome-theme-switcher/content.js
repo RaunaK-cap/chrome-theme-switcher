@@ -119,6 +119,10 @@ function isDarkTheme(name = currentSettings.theme) {
   return name === "dark" || name === "codex" || name === "slate" || name === "rose";
 }
 
+function isXSite() {
+  return siteKey === "x.com" || siteKey === "twitter.com";
+}
+
 function hexToRgb(hex) {
   const normalized = hex.replace("#", "");
   if (normalized.length !== 6) return null;
@@ -230,6 +234,16 @@ function shouldNormalizeBackground(element, luminance) {
 
 function getNormalizedBackground(element) {
   const theme = getTheme(currentSettings.theme);
+  if (isXSite()) {
+    if (element.matches("[role='article'], [data-testid='cellInnerDiv'], [data-testid='primaryColumn'], [data-testid='sidebarColumn']")) {
+      return theme.surface;
+    }
+
+    if (element.matches("input, textarea, button, [role='button'], [role='dialog'], [role='menu'], [data-testid*='placementTracking'], [data-testid='SearchBox_Search_Input']")) {
+      return theme.elevated;
+    }
+  }
+
   if (element.matches("input, textarea, select, button, pre, code, blockquote, [role='button'], [role='dialog'], [role='menu'], [role='listbox']")) {
     return theme.elevated;
   }
@@ -239,6 +253,9 @@ function getNormalizedBackground(element) {
 
 function normalizeBackground(element) {
   if (!shouldConsiderElement(element)) return null;
+  if (isXSite() && element.closest("[data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='card.wrapper'], [aria-label='Image'], [aria-label='Video']")) {
+    return null;
+  }
 
   const ownBackground = getOwnBackground(element);
   if (!ownBackground) return null;
@@ -363,12 +380,164 @@ function stopContrastGuard(shouldClear = true) {
   }
 }
 
+function getButtonTextColor(settings) {
+  return isDarkTheme(settings.theme) ? "#111111" : "#ffffff";
+}
+
+function buildXCss(settings) {
+  const theme = getTheme(settings.theme);
+  const buttonText = getButtonTextColor(settings);
+
+  return `
+    html,
+    body,
+    #react-root,
+    #react-root > div {
+      background-color: var(--toneshift-page) !important;
+    }
+
+    div[data-testid="primaryColumn"],
+    div[data-testid="sidebarColumn"] {
+      background-color: var(--toneshift-page) !important;
+      border-color: var(--toneshift-border) !important;
+    }
+
+    div[data-testid="cellInnerDiv"],
+    article[data-testid="tweet"],
+    div[aria-label="Timeline: Your Home Timeline"] > div,
+    div[aria-label="Timeline: Explore"] > div,
+    div[aria-label="Timeline: Search timeline"] > div,
+    section[role="region"] {
+      background-color: var(--toneshift-surface) !important;
+      border-color: var(--toneshift-border) !important;
+    }
+
+    header[role="banner"],
+    div[data-testid="TopNavBar"],
+    div[data-testid="DMDrawer"],
+    div[data-testid="Dropdown"],
+    div[role="dialog"],
+    div[role="menu"],
+    div[data-testid="typeaheadDropdown-0"],
+    div[data-testid="HoverCard"] {
+      background-color: var(--toneshift-elevated) !important;
+      border-color: var(--toneshift-border) !important;
+      box-shadow: none !important;
+    }
+
+    div[data-testid="sidebarColumn"] a,
+    nav[role="navigation"] a,
+    div[data-testid="AppTabBar_Profile_Link"],
+    div[data-testid="SideNav_AccountSwitcher_Button"],
+    div[data-testid="DashButton_ProfileIcon_Link"],
+    div[data-testid="UserCell"],
+    div[data-testid="trend"],
+    div[data-testid="placementTracking"] {
+      background-color: transparent !important;
+      color: var(--toneshift-text) !important;
+      border-color: var(--toneshift-border) !important;
+    }
+
+    div[data-testid="sidebarColumn"] section,
+    div[data-testid="sidebarColumn"] aside,
+    div[data-testid="placementTracking"],
+    div[aria-label="Who to follow"],
+    div[aria-label="Timeline: Trending now"] {
+      background-color: var(--toneshift-elevated) !important;
+      border-color: var(--toneshift-border) !important;
+    }
+
+    div[data-testid="SearchBox_Search_Input"],
+    input[aria-label="Search query"],
+    div[data-testid="tweetTextarea_0"],
+    div[data-testid="tweetTextarea_0"] *,
+    div[data-testid="tweetTextarea_1"],
+    div[data-testid="tweetTextarea_1"] * {
+      background-color: var(--toneshift-elevated) !important;
+      color: var(--toneshift-text) !important;
+      border-color: var(--toneshift-border) !important;
+    }
+
+    div[data-testid="tweetButton"],
+    div[data-testid="tweetButtonInline"],
+    a[href="/compose/post"],
+    a[data-testid="SideNav_NewTweet_Button"] {
+      background-color: var(--toneshift-link) !important;
+      color: ${buttonText} !important;
+      border-color: var(--toneshift-link) !important;
+    }
+
+    div[data-testid="tweetButton"] *,
+    div[data-testid="tweetButtonInline"] *,
+    a[href="/compose/post"] *,
+    a[data-testid="SideNav_NewTweet_Button"] * {
+      color: ${buttonText} !important;
+      fill: ${buttonText} !important;
+    }
+
+    div[data-testid="like"],
+    div[data-testid="reply"],
+    div[data-testid="retweet"],
+    div[data-testid="bookmark"],
+    div[data-testid="share"],
+    div[role="button"] {
+      background-color: transparent !important;
+    }
+
+    svg,
+    div[style*="color"] svg {
+      fill: currentColor !important;
+    }
+
+    div[data-testid="User-Name"] *,
+    div[data-testid="tweetText"],
+    div[data-testid="tweetText"] *,
+    span {
+      color: inherit !important;
+    }
+
+    [data-testid="tweetPhoto"],
+    [data-testid="tweetPhoto"] *,
+    [data-testid="videoPlayer"],
+    [data-testid="videoPlayer"] *,
+    [aria-label="Image"],
+    [aria-label="Image"] *,
+    [aria-label="Video"],
+    [aria-label="Video"] *,
+    video,
+    img {
+      filter: none !important;
+    }
+
+    div[style*="background-color: rgb(255, 255, 255)"],
+    div[style*="background-color: white"] {
+      background-color: var(--toneshift-surface) !important;
+    }
+
+    div[style*="color: rgb(15, 20, 25)"],
+    div[style*="color: rgb(231, 233, 234)"],
+    span[style*="color: rgb(15, 20, 25)"],
+    span[style*="color: rgb(231, 233, 234)"] {
+      color: var(--toneshift-text) !important;
+    }
+
+    div[style*="color: rgb(83, 100, 113)"],
+    span[style*="color: rgb(83, 100, 113)"],
+    div[style*="color: rgb(113, 118, 123)"],
+    span[style*="color: rgb(113, 118, 123)"] {
+      color: var(--toneshift-muted) !important;
+    }
+  `;
+}
+
 function buildCss(settings) {
   const theme = getTheme(settings.theme);
   const contrast = Number(settings.contrast) / 100;
   const imageTone = Number(settings.imageTone) / 100;
   const isDark = isDarkTheme(settings.theme);
-  const imageFilter = isDark
+  const imageFilter = isXSite()
+    ? "none"
+    : isDark
     ? `brightness(${Math.max(0.6, imageTone)}) contrast(${Math.max(0.82, contrast)})`
     : `brightness(${Math.max(0.9, imageTone)}) contrast(${Math.max(0.88, contrast)})`;
 
@@ -461,6 +630,8 @@ function buildCss(settings) {
       background: var(--toneshift-selection) !important;
       color: var(--toneshift-text) !important;
     }
+
+    ${isXSite() ? buildXCss(settings) : ""}
   `;
 }
 
