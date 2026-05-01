@@ -1,6 +1,6 @@
 const SITE_SETTINGS_KEY = "siteSettings";
 const DEFAULT_SETTINGS = {
-  enabled: true,
+  enabled: false,
   theme: "codex",
   contrast: 92,
   imageTone: 88

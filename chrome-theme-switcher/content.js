@@ -9,7 +9,7 @@ const ORIGINAL_BG_ATTR = "data-toneshift-original-bg";
 const ORIGINAL_BG_PRIORITY_ATTR = "data-toneshift-original-bg-priority";
 const SITE_SETTINGS_KEY = "siteSettings";
 const DEFAULT_SETTINGS = {
-  enabled: true,
+  enabled: false,
   theme: "codex",
   contrast: 92,
   imageTone: 88
@@ -186,6 +186,9 @@ function shouldConsiderElement(element) {
 
 function shouldCheckElement(element) {
   if (!shouldConsiderElement(element)) return false;
+  if (isXSite() && element.closest("nav[role='navigation'], [data-testid='User-Name'], [data-testid='tweetText'], [data-testid='like'], [data-testid='reply'], [data-testid='retweet'], [data-testid='bookmark'], [data-testid='share']")) {
+    return false;
+  }
 
   return Boolean(
     element.children.length === 0 ||
@@ -219,6 +222,14 @@ function restoreInlineStyle(element, property, valueAttr, priorityAttr) {
 function shouldNormalizeBackground(element, luminance) {
   if (element === document.documentElement || element === document.body) {
     return false;
+  }
+
+  if (isXSite()) {
+    return Boolean(
+      element.matches(
+        "div[data-testid='primaryColumn'], div[data-testid='sidebarColumn'], div[data-testid='cellInnerDiv'], article[data-testid='tweet'], div[role='dialog'], div[role='menu'], div[data-testid='Dropdown'], div[data-testid='HoverCard'], div[data-testid='SearchBox_Search_Input'], div[data-testid='DMDrawer'], div[data-testid='placementTracking']"
+      ) && (isDarkTheme() ? luminance > 0.44 : luminance < 0.22)
+    );
   }
 
   const hasVisualRole = element.matches(
@@ -256,6 +267,9 @@ function normalizeBackground(element) {
   if (isXSite() && element.closest("[data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='card.wrapper'], [aria-label='Image'], [aria-label='Video']")) {
     return null;
   }
+  if (isXSite() && element.closest("nav[role='navigation'], [data-testid='like'], [data-testid='reply'], [data-testid='retweet'], [data-testid='bookmark'], [data-testid='share'], [data-testid='User-Name']")) {
+    return null;
+  }
 
   const ownBackground = getOwnBackground(element);
   if (!ownBackground) return null;
@@ -285,10 +299,12 @@ function applyReadableText(element, normalizedBackground = null) {
   const isLightBackground = luminance > 0.56;
   const readableText = isLightBackground ? "#151515" : "#f7f7f7";
   const readableMuted = isLightBackground ? "#4d4d4d" : "#c8c8c8";
-  const readableLink = isLightBackground ? "#1d4fbf" : theme.link;
+  const readableLink = isXSite() ? "#1d9bf0" : isLightBackground ? "#1d4fbf" : theme.link;
 
   const isLink = element.closest("a[href]");
-  const color = isLink ? readableLink : readableText;
+  const isXNavLink = isXSite() && Boolean(element.closest("nav[role='navigation'], [data-testid='SideNav_AccountSwitcher_Button']"));
+  const isXMuted = isXSite() && Boolean(element.closest("[data-testid='like'], [data-testid='reply'], [data-testid='retweet'], [data-testid='bookmark'], [data-testid='share']"));
+  const color = isXMuted ? readableMuted : isLink && !isXNavLink ? readableLink : readableText;
   const mode = isLightBackground ? "light-bg" : "dark-bg";
   const caretColor = isLink ? readableLink : color;
 
@@ -385,8 +401,8 @@ function getButtonTextColor(settings) {
 }
 
 function buildXCss(settings) {
-  const theme = getTheme(settings.theme);
   const buttonText = getButtonTextColor(settings);
+  const xBlue = "#1d9bf0";
 
   return `
     html,
@@ -425,15 +441,34 @@ function buildXCss(settings) {
       box-shadow: none !important;
     }
 
-    div[data-testid="sidebarColumn"] a,
+    nav[role="navigation"],
+    nav[role="navigation"] *,
     nav[role="navigation"] a,
+    nav[role="navigation"] a *,
+    nav[role="navigation"] div[style*="background-color"],
     div[data-testid="AppTabBar_Profile_Link"],
     div[data-testid="SideNav_AccountSwitcher_Button"],
+    div[data-testid="SideNav_AccountSwitcher_Button"] *,
     div[data-testid="DashButton_ProfileIcon_Link"],
+    div[data-testid="DashButton_ProfileIcon_Link"] * {
+      background-color: transparent !important;
+      color: var(--toneshift-text) !important;
+      fill: currentColor !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    nav[role="navigation"] a:hover,
+    nav[role="navigation"] a:hover *,
+    div[data-testid="SideNav_AccountSwitcher_Button"]:hover,
+    div[data-testid="SideNav_AccountSwitcher_Button"]:hover * {
+      background-color: color-mix(in srgb, var(--toneshift-text) 10%, transparent) !important;
+    }
+
+    div[data-testid="sidebarColumn"] a,
     div[data-testid="UserCell"],
     div[data-testid="trend"],
     div[data-testid="placementTracking"] {
-      background-color: transparent !important;
       color: var(--toneshift-text) !important;
       border-color: var(--toneshift-border) !important;
     }
@@ -476,12 +511,29 @@ function buildXCss(settings) {
     }
 
     div[data-testid="like"],
+    div[data-testid="like"] *,
     div[data-testid="reply"],
+    div[data-testid="reply"] *,
     div[data-testid="retweet"],
+    div[data-testid="retweet"] *,
     div[data-testid="bookmark"],
+    div[data-testid="bookmark"] *,
     div[data-testid="share"],
-    div[role="button"] {
+    div[data-testid="share"] *,
+    article[data-testid="tweet"] div[role="button"],
+    article[data-testid="tweet"] div[role="button"] * {
       background-color: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    div[data-testid="like"] *,
+    div[data-testid="reply"] *,
+    div[data-testid="retweet"] *,
+    div[data-testid="bookmark"] *,
+    div[data-testid="share"] * {
+      color: var(--toneshift-muted) !important;
+      fill: currentColor !important;
     }
 
     svg,
@@ -494,6 +546,48 @@ function buildXCss(settings) {
     div[data-testid="tweetText"] *,
     span {
       color: inherit !important;
+    }
+
+    article[data-testid="tweet"] {
+      color: var(--toneshift-text) !important;
+    }
+
+    div[data-testid="tweetText"],
+    div[data-testid="tweetText"] * {
+      color: var(--toneshift-text) !important;
+      background-color: transparent !important;
+    }
+
+    div[data-testid="tweetText"] a,
+    div[data-testid="tweetText"] a *,
+    article[data-testid="tweet"] a[href*="/status/"],
+    article[data-testid="tweet"] a[href*="/status/"] *,
+    a[href^="/hashtag/"],
+    a[href^="/hashtag/"] *,
+    a[href^="/search"],
+    a[href^="/search"] * {
+      color: ${xBlue} !important;
+    }
+
+    div[data-testid="User-Name"],
+    div[data-testid="User-Name"] a,
+    div[data-testid="User-Name"] a *,
+    div[data-testid="User-Name"] span {
+      background-color: transparent !important;
+    }
+
+    div[data-testid="User-Name"] a:first-child,
+    div[data-testid="User-Name"] a:first-child * {
+      color: var(--toneshift-text) !important;
+    }
+
+    div[data-testid="User-Name"] a:not(:first-child),
+    div[data-testid="User-Name"] a:not(:first-child) *,
+    article[data-testid="tweet"] time,
+    article[data-testid="tweet"] time *,
+    article[data-testid="tweet"] [dir="ltr"] span[style*="color: rgb(83, 100, 113)"],
+    article[data-testid="tweet"] [dir="ltr"] span[style*="color: rgb(113, 118, 123)"] {
+      color: var(--toneshift-muted) !important;
     }
 
     [data-testid="tweetPhoto"],
@@ -512,6 +606,16 @@ function buildXCss(settings) {
     div[style*="background-color: rgb(255, 255, 255)"],
     div[style*="background-color: white"] {
       background-color: var(--toneshift-surface) !important;
+    }
+
+    nav[role="navigation"] div[style*="background-color: rgb(255, 255, 255)"],
+    nav[role="navigation"] div[style*="background-color: white"],
+    article[data-testid="tweet"] div[data-testid="like"] div[style*="background-color"],
+    article[data-testid="tweet"] div[data-testid="reply"] div[style*="background-color"],
+    article[data-testid="tweet"] div[data-testid="retweet"] div[style*="background-color"],
+    article[data-testid="tweet"] div[data-testid="bookmark"] div[style*="background-color"],
+    article[data-testid="tweet"] div[data-testid="share"] div[style*="background-color"] {
+      background-color: transparent !important;
     }
 
     div[style*="color: rgb(15, 20, 25)"],
